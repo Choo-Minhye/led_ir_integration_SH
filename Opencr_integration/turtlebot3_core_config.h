@@ -149,6 +149,12 @@ void relayCB(const std_msgs::Bool& relay_cb) {
 }
 ros::Subscriber<std_msgs::Bool> sub_relay("relay", &relayCB);
 
+
+////////////////////////////////////////////////////////////////////////////////
+///// led 발광을 위해여, subscribe 한 int data 를 serial을 통하여 보내는 부분입니다.
+///// Serial 0 는 이미 ros 를 위헤 사용중이라서,
+///// Serial 2 (UART 4) 를 이용하고 있습니다.
+////////////////////////////////////////////////////////////////////////////////
 /*----LED Strips----*/
 int led_data;
 
@@ -370,23 +376,34 @@ void pub_Sonar(unsigned long SONAR_1_FREQUENCY) {
 }
 
 
-void pub_dock() {
 
+////////////////////////////////////////////////////////////////////////////////
+/// 나노에서 전송한 docking 데이터를 읽어드리는 부분입니다.
+////////////////////////////////////////////////////////////////////////////////
+void pub_dock() {
+  // led 와 마찬가지로 serial 2 를 통해 data 를 읽어옵니다.
+  // serial.available 를 통해 serial.read 를 사용함~ 중요성은 nano_part.ino 에 서술해두었습니다.
   if (SERIAL.available() > 0 ) {
     unsigned int dockdata = 0;
 
     data = SERIAL.read();
+    // 읽어드린 char data를 string _data 에 저장합니다. 
     _data += data;
 
+    // \n 이 탐지 될 때까지, string 에 저장하고, 사용이 완료되면, 초기화 해주니다.
     if (data == '\n') {
       _dockdata = _data;
+      // string 을  int 로 변형
       dockdata = _dockdata.toInt();
 
       _data = "";
       _dockdata = "";
 
+      // 수신된 ir data 를 ros 의 topic msg 형태에 맞추어서 넣어주고 publish 해줍니다.
       dockdata_T.data = dockdata;
       pubdockdata_T.publish(&dockdata_T);
+
+      
       if (dockdata == 0) {
         docking_info = 0;
       }
